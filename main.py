@@ -1439,23 +1439,43 @@ def render_ai_enrichment(supabase: Client, openai_client: OpenAI):
 # PAGE 3: PRODUCT LIBRARY (NEW)
 # =====================================================
 
-@st.dialog("Product Editor", width="large")
-def edit_product_dialog(sku: str, table_name: str, _supabase: Client):
-    """Modal dialog to edit product details with Web Search Enrichment"""
+def render_product_editor(supabase: Client):
+    """Full Page Product Editor"""
+    
+    # Get Context
+    if 'p_lib_edit_target' not in st.session_state or not st.session_state.p_lib_edit_target:
+        st.error("No product selected.")
+        if st.button("Back"):
+             st.session_state['page_nav'] = "Product Library"
+             st.rerun()
+        return
+
+    target = st.session_state.p_lib_edit_target
+    sku = target['sku']
+    table_name = target['table']
+
+    # Back Button (Top Left)
+    if st.button("⬅️ Back to Library", key="back_from_edit"):
+        st.session_state['page_nav'] = "Product Library"
+        st.rerun()
+
+    # st.title(f"Editing: {sku}") # Moved down to use product name
+
+
     # Dynamic Title
     try:
-        data = _supabase.table(table_name).select("*").eq("sku", sku).execute()
+        data = supabase.table(table_name).select("*").eq("sku", sku).execute()
         if not data.data:
             st.error("Product not found.")
             return
         product = data.data[0]
-        st.header(product.get('product_name', sku))
+        st.title(product.get('product_name', sku))
         st.caption(f"SKU: {sku} | Table: {table_name}")
     except Exception as e:
         st.error(f"Error loading product: {str(e)}")
         return
 
-    # Initialize session state for this dialog if needed (Streamlit dialogs rerun script)
+    # Initialize session state for this dialog if needed
     enrich_key = f"enrich_res_{sku}"
         
     # Merge with Enrichment Result if available
@@ -1607,7 +1627,7 @@ def edit_product_dialog(sku: str, table_name: str, _supabase: Client):
         # Upload
         new_imgs = st.file_uploader("Add Images", type=['png', 'jpg', 'jpeg', 'webp'], accept_multiple_files=True, key=f"img_up_{sku}")
         if new_imgs and st.button("⬆️ Upload Photos", key="btn_up_imgs"):
-             upload_media(new_imgs, "image", product, _supabase, sku, table_name)
+             upload_media(new_imgs, "image", product, supabase, sku, table_name)
         
         st.divider()
         # List
@@ -1618,7 +1638,7 @@ def edit_product_dialog(sku: str, table_name: str, _supabase: Client):
         else:
             img_list = []
             
-        render_media_list(img_list, "image", product, _supabase, sku, table_name)
+        render_media_list(img_list, "image", product, supabase, sku, table_name)
         
     with col_media_graphs:
         st.markdown("#### 📊 Technical Graphs")
@@ -1626,7 +1646,7 @@ def edit_product_dialog(sku: str, table_name: str, _supabase: Client):
         
         new_graphs = st.file_uploader("Add Graphs", type=['png', 'jpg', 'jpeg', 'webp'], accept_multiple_files=True, key=f"graph_up_{sku}")
         if new_graphs and st.button("⬆️ Upload Graphs", key="btn_up_graphs"):
-             upload_media(new_graphs, "graph", product, _supabase, sku, table_name)
+             upload_media(new_graphs, "graph", product, supabase, sku, table_name)
              
         st.divider()
         # List
@@ -1640,11 +1660,12 @@ def edit_product_dialog(sku: str, table_name: str, _supabase: Client):
         else:
              graph_list = []
              
-        render_media_list(graph_list, "graph", product, _supabase, sku, table_name)
+        render_media_list(graph_list, "graph", product, supabase, sku, table_name)
 
     st.divider()
-    if st.button("Close Dialog"):
-        st.session_state.p_lib_edit_target = None
+    # Bottom Back Button
+    if st.button("⬅️ Back to Library", key="back_btn_bottom"):
+        st.session_state['page_nav'] = "Product Library"
         st.rerun()
 
 def upload_media(files, media_type, product, supabase, sku, table_name):
@@ -1753,13 +1774,14 @@ def upload_media(files, media_type, product, supabase, sku, table_name):
              val = ",".join(combined)
              col = "image_url"
          else:
-             # misc_images is TEXT[] -> Save as Python List
+             # misc_images (Graphs) -> TEXT[]
              raw = product.get('misc_images', [])
              if isinstance(raw, list): current = raw
              elif isinstance(raw, str): current = parse_csv(raw)
              else: current = []
+             
              combined = current + uploaded_urls
-             val = combined 
+             val = combined
              col = "misc_images"
              
          try:
@@ -2110,6 +2132,8 @@ def render_product_library(supabase: Client):
                      if st.button("✏️ Edit 1 Item", type="primary", use_container_width=True):
                          row = selected_rows.iloc[0]
                          st.session_state.p_lib_edit_target = {"sku": row['sku'], "table": row['Table']}
+                         # Navigate to Editor Page
+                         st.session_state['page_nav'] = "Product Editor"
                          st.rerun()
                 else:
                      if st.button(f"✏️ Edit {len(selected_rows)} Items", type="primary", use_container_width=True):
@@ -2121,10 +2145,7 @@ def render_product_library(supabase: Client):
         else:
              st.write("") # Spacer
     
-    # Trigger Dialog
-    if st.session_state.get("p_lib_edit_target"):
-        target = st.session_state.p_lib_edit_target
-        edit_product_dialog(target['sku'], target['table'], supabase)
+
 
 
 # =====================================================
@@ -2310,6 +2331,8 @@ def main():
         render_ai_enrichment(supabase, openai_client)
     elif page == "Schema Manager":
         render_schema_manager(supabase)
+    elif page == "Product Editor":
+        render_product_editor(supabase)
 
 # =====================================================
 # RUN APPLICATION
