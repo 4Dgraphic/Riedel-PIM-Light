@@ -19,6 +19,7 @@ import time
 from PIL import Image
 from tavily import TavilyClient
 from pypdf import PdfReader
+import extra_streamlit_components as stx
 
 def clean_string_val(val) -> str:
     """Unbox lists and clean strings"""
@@ -2134,46 +2135,39 @@ def render_product_library(supabase: Client):
 # AUTHENTICATION
 # =====================================================
 
-def render_login_page(supabase: Client):
-    """Render a clean login screen"""
+def render_login_page(supabase: Client, cookie_manager):
+    """Render a clean login screen with Cookie Persistence"""
     
     # Centering Layout
-    c1, c2, c3 = st.columns([1, 1.2, 1])
+    c1, c2, c3 = st.columns([1, 1, 1])
     
     with c2:
         # Official Riedel Logo
-        svg_logo = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470.74 122.39" style="width: 250px; height: auto;"><path d="M35.13,16.27L43.27,0h35.13s24.24.38,22.2,22.1c-1.11,11.89-8.37,15.84-13.15,18.54-3.46,1.96-9.73,3.62-9.73,3.62l23.45,40.07h-27.02l-23.85-40.91s27.64,1.87,27.64-17.94c0-8.9-9.93-9.22-12.87-9.22l-29.95-.05v.05h0ZM0,84.33l21.62-40.89,24.99-.05-20.68,40.94H0ZM44.46,39.5c7.08-2.95,9.41-8.12,8.59-12.6-1.54-8.35-11.5-8.74-17.58-6.55-2.81,1.01-11.8,6.84-8.57,15.19,1.97,5.08,10.49,6.89,17.56,3.95M185.18,45.33h2.18c5.91,0,9.81-.64,11.71-1.94,1.9-1.29,2.84-3.55,2.84-6.75,0-3.37-1.02-5.76-3.05-7.18-2.04-1.42-5.87-2.13-11.5-2.13h-2.18v17.99h0ZM219.9,84.33h-16.79l-17.94-31.79v31.79h-14.6V16.27h20.85c8.29,0,14.5,1.6,18.63,4.81s6.19,8.04,6.19,14.49c0,4.68-1.42,8.68-4.25,12s-6.49,5.26-10.97,5.81l18.87,30.95h.01ZM228.53,16.27h14.59v68.06h-14.59V16.27ZM258.64,84.33V16.27h40.13v12.33h-25.54v13.96h25.54v12.33h-25.54v17.11h25.54v12.33h-40.13ZM327.58,72h2.04c7.61,0,13.16-1.73,16.64-5.21,3.48-3.47,5.22-8.97,5.22-16.5s-1.74-12.99-5.22-16.47c-3.48-3.49-9.03-5.23-16.64-5.23h-2.04v43.4h0ZM312.99,84.33V16.27h18.59c10.61,0,19.15,4.26,22.34,6.64,4.12,3.07,7.24,6.93,9.36,11.6,2.12,4.66,3.18,9.97,3.18,15.92s-1.08,11.4-3.25,16.06c-2.17,4.67-5.34,8.52-9.52,11.55-3.1,2.24-9.47,6.28-20.95,6.28h-19.75,0ZM378.64,84.33V16.27h40.14v12.33h-25.54v13.96h25.54v12.33h-25.54v17.11h25.54v12.33h-40.14ZM432.99,84.33V16.27h14.59v55.73h23.16v12.33h-37.75ZM117.27,16.27h6.4v68.06h-6.4V16.27h0ZM132.85,0h6.4v122.39h-6.4V0ZM148.09,0h6.4v84.33h-6.4V0Z"/></svg>"""
+        svg_logo = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470.74 122.39" style="width: 100%; max-width: 250px; height: auto;"><path fill="#1a1a1a" d="M35.13,16.27L43.27,0h35.13s24.24.38,22.2,22.1c-1.11,11.89-8.37,15.84-13.15,18.54-3.46,1.96-9.73,3.62-9.73,3.62l23.45,40.07h-27.02l-23.85-40.91s27.64,1.87,27.64-17.94c0-8.9-9.93-9.22-12.87-9.22l-29.95-.05v.05h0ZM0,84.33l21.62-40.89,24.99-.05-20.68,40.94H0ZM44.46,39.5c7.08-2.95,9.41-8.12,8.59-12.6-1.54-8.35-11.5-8.74-17.58-6.55-2.81,1.01-11.8,6.84-8.57,15.19,1.97,5.08,10.49,6.89,17.56,3.95M185.18,45.33h2.18c5.91,0,9.81-.64,11.71-1.94,1.9-1.29,2.84-3.55,2.84-6.75,0-3.37-1.02-5.76-3.05-7.18-2.04-1.42-5.87-2.13-11.5-2.13h-2.18v17.99h0ZM219.9,84.33h-16.79l-17.94-31.79v31.79h-14.6V16.27h20.85c8.29,0,14.5,1.6,18.63,4.81s6.19,8.04,6.19,14.49c0,4.68-1.42,8.68-4.25,12s-6.49,5.26-10.97,5.81l18.87,30.95h.01ZM228.53,16.27h14.59v68.06h-14.59V16.27ZM258.64,84.33V16.27h40.13v12.33h-25.54v13.96h25.54v12.33h-25.54v12.33h-25.54v17.11h25.54v12.33h-40.13ZM327.58,72h2.04c7.61,0,13.16-1.73,16.64-5.21,3.48-3.47,5.22-8.97,5.22-16.5s-1.74-12.99-5.22-16.47c-3.48-3.49-9.03-5.23-16.64-5.23h-2.04v43.4h0ZM312.99,84.33V16.27h18.59c10.61,0,19.15,4.26,22.34,6.64,4.12,3.07,7.24,6.93,9.36,11.6,2.12,4.66,3.18,9.97,3.18,15.92s-1.08,11.4-3.25,16.06c-2.17,4.67-5.34,8.52-9.52,11.55-3.1,2.24-9.47,6.28-20.95,6.28h-19.75,0ZM378.64,84.33V16.27h40.14v12.33h-25.54v13.96h25.54v12.33h-25.54v17.11h25.54v12.33h-40.14ZM432.99,84.33V16.27h14.59v55.73h23.16v12.33h-37.75ZM117.27,16.27h6.4v68.06h-6.4V16.27h0ZM132.85,0h6.4v122.39h-6.4V0ZM148.09,0h6.4v84.33h-6.4V0Z"/></svg>"""
 
         st.markdown(f"""
-            <div style="
-                text-align: center; 
-                padding: 2.5rem; 
-                background: white; 
-                border-radius: 16px; 
-                border: 1px solid #E2E8F0;
-                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-                margin-top: 5rem;
-                margin-bottom: 2rem;
-            ">
-                <div style="margin-bottom: 2rem; display: flex; justify-content: center;">
+            <div style="text-align: center; margin-top: 6rem; margin-bottom: 3rem;">
+                <div style="margin: 0 auto 1.5rem auto;">
                     {svg_logo}
                 </div>
-                <h1 style="margin: 0; font-size: 1.5rem; color: #0F172A; font-weight: 700;">Riedel PIM Lite</h1>
-                <p style="color: #64748B; margin: 0.5rem 0 0 0;">Sign in to access the system</p>
+                <h3 style="margin: 0; color: #64748B; font-weight: 500; font-size: 1.1rem; letter-spacing: 0.5px;">PIM Lite</h3>
             </div>
         """, unsafe_allow_html=True)
         
         with st.form("login_form"):
             email = st.text_input("Email", placeholder="user@riedel.net")
             password = st.text_input("Password", type="password", placeholder="••••••••")
+            remember = st.checkbox("Remember me", value=True)
             
             st.markdown("###")
             
-            if st.form_submit_button("🔐 Sign In", type="primary", use_container_width=True):
+            if st.form_submit_button("Sign In", type="primary", use_container_width=True):
                 try:
                     res = supabase.auth.sign_in_with_password({"email": email, "password": password})
                     if res.user:
                         st.session_state['user'] = res.user
+                        if remember and res.session:
+                            cookie_manager.set('pim_token', res.session.access_token, key="set_auth_cookie", expires_at=None)
                         st.success("Welcome back!")
                         time.sleep(0.5)
                         st.rerun()
@@ -2190,9 +2184,22 @@ def main():
     supabase = init_supabase()
     openai_client = init_openai()
     
+    # Cookie Manager (Must be init at top)
+    cookie_manager = stx.CookieManager(key="auth_cookies")
+    auth_token = cookie_manager.get('pim_token')
+    
+    # Auto Login from Cookie
+    if 'user' not in st.session_state and auth_token:
+        try:
+            res = supabase.auth.get_user(auth_token)
+            if res.user:
+                st.session_state['user'] = res.user
+        except:
+            cookie_manager.delete('pim_token')
+    
     # AUTH CHECK
     if 'user' not in st.session_state:
-        render_login_page(supabase)
+        render_login_page(supabase, cookie_manager)
         return
     
     # Sidebar Navigation
@@ -2246,6 +2253,7 @@ def main():
                 supabase.auth.sign_out()
                 if 'user' in st.session_state:
                     del st.session_state['user']
+                cookie_manager.delete('pim_token')
                 st.rerun()
         
         st.divider()

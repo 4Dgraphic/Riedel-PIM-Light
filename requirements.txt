@@ -10,3 +10,4 @@ Pillow
 tavily-python
 watchdog
 tiktoken>=0.7.0
+extra-streamlit-components==0.1.71
