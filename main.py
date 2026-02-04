@@ -2204,38 +2204,61 @@ def main():
     
     # Sidebar Navigation
     with st.sidebar:
+        # Sidebar Logo
+        st.image("https://hdcnohbbsqjvfuccrmso.supabase.co/storage/v1/object/public/assets/Logo%20Riedel%20RGB.png", width=130)
+
+        
+        # Modern Button-based Navigation
+        if 'page_nav' not in st.session_state:
+            st.session_state['page_nav'] = "Dashboard"
+            
+        def nav_button(label, page_key):
+            is_active = st.session_state['page_nav'] == page_key
+            btn_type = "primary" if is_active else "secondary"
+            if st.button(label, key=f"nav_{page_key}", type=btn_type, use_container_width=True):
+                st.session_state['page_nav'] = page_key
+                st.rerun()
+                
+        nav_button("Dashboard", "Dashboard")
+        # Add some spacing CSS to make buttons look like menu items (less gap)
         st.markdown("""
-            <div style="display: flex; align-items: center; margin-bottom: 2rem;">
-                <div style="
-                    width: 40px;
-                    height: 40px;
-                    background-color: #E30613;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin-right: 1rem;
-                    color: white;
-                    font-weight: bold;
-                    font-size: 1.5rem;
-                ">R</div>
-                <h1 style="margin: 0; font-size: 1.5rem; font-weight: 700;">PIM Lite</h1>
-            </div>
+            <style>
+            /* Reduce gap between buttons */
+            div.row-widget.stButton {
+                margin-bottom: -10px;
+            }
+            
+            /* INACTIVE Buttons (Secondary) -> Red Outline */
+            section[data-testid="stSidebar"] button[kind="secondary"] {
+                background-color: transparent !important;
+                border: 1px solid #E30613 !important;
+                color: #E30613 !important;
+                width: 100%;
+            }
+            
+            /* ACTIVE Button (Primary) -> Red Fill */
+            section[data-testid="stSidebar"] button[kind="primary"] {
+                background-color: #E30613 !important;
+                border: 1px solid #E30613 !important;
+                color: white !important;
+                width: 100%;
+            }
+            
+            /* Hover Interaction */
+            section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+                background-color: #FFF0F0 !important;
+                border-color: #E30613 !important;
+                color: #E30613 !important;
+            }
+            </style>
         """, unsafe_allow_html=True)
         
-        page = option_menu(
-            None,
-            ["Dashboard", "Product Library", "Bulk Import", "AI Enrichment", "Schema Manager"],
-            icons=["speedometer2", "collection", "cloud-upload", "stars", "database-gear"],
-            menu_icon="cast",
-            default_index=0,
-            styles={
-                "container": {"padding": "0!important", "background-color": "transparent"},
-                "icon": {"color": "#64748B", "font-size": "1.1rem"}, 
-                "nav-link": {"font-size": "0.95rem", "text-align": "left", "margin":"0px", "--hover-color": "#F1F5F9", "color": "#475569"},
-                "nav-link-selected": {"background-color": "#E30613", "color": "white", "font-weight": "500"},
-            }
-        )
+        nav_button("Product Library", "Product Library")
+        nav_button("Bulk Import", "Bulk Import")
+        nav_button("AI Enrichment", "AI Enrichment")
+        nav_button("Schema Manager", "Schema Manager")
+        
+        page = st.session_state['page_nav']
         
         st.divider()
         
